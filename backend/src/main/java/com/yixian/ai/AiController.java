@@ -1,30 +1,43 @@
 package com.yixian.ai;
 
 import com.yixian.common.Result;
-import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-// 注意：/ai/extract 由 2号实现（AiService + DeepSeekAiGateway），
-// 合并时把 2号的 AiService 注入进来，把 extract 方法实现替换掉。
 @RestController
 @RequestMapping("/api/v1/ai")
 @RequiredArgsConstructor
 public class AiController {
-
+    private final AiService aiService;
     private final AiQueryService aiQueryService;
 
-    // AI④ 管理智脑（6号实现）
+    // AI① 智能填单 — 从用户输入中提取字段
+    @PostMapping("/extract")
+    public Result<Map<String, Object>> extract(@RequestBody AiService.ExtractRequest request) {
+        return Result.ok(aiService.extract(request));
+    }
+
+    // AI② 智能问答
+    @PostMapping("/chat")
+    public Result<Map<String, Object>> chat(@RequestBody AiService.ChatRequest request) {
+        return Result.ok(aiService.chat(request));
+    }
+
+    // AI④ 管理智脑 — 自然语言查询统计
     @PostMapping("/query")
     public Result<AiQueryService.AiQueryResponse> query(@RequestBody AiQueryRequest req) {
         return Result.ok(aiQueryService.query(req.getQuestion()));
     }
 
-    // AI① 智能填单（2号实现，待合并）
-    @PostMapping("/extract")
-    public Result<?> extract(@RequestBody Map<String, String> req) {
-        // TODO: 2号合并时替换为 aiService.extract(req)
-        return Result.fail("AI① 智能填单接口由2号实现，待合并");
+    // AI③ 智能派单 — 生成派单推荐理由
+    @PostMapping("/dispatch-reason")
+    public Result<Map<String, Object>> dispatchReason(
+            @RequestBody AiService.DispatchReasonRequest request
+    ) {
+        return Result.ok(aiService.dispatchReason(request));
     }
 }

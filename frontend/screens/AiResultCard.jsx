@@ -1,0 +1,1 @@
+export { AiResultCard } from './FormFields'
