@@ -2,7 +2,10 @@
   <div class="page">
     <div class="page-header">
       <div><p class="page-kicker">核心业务</p><h1>审批中心</h1><p>集中处理来自翼线助手 APP 的领料、拜访和支撑申请。</p></div>
-      <div class="page-actions"><el-button :icon="Refresh" @click="resetFilters">重置筛选</el-button></div>
+      <div class="page-actions">
+        <el-button :icon="Refresh" :loading="loading" @click="loadApplications">刷新数据</el-button>
+        <el-button :icon="RefreshLeft" @click="resetFilters">重置筛选</el-button>
+      </div>
     </div>
 
     <div class="attention-banner">
@@ -13,8 +16,8 @@
 
     <section class="panel table-panel">
       <el-tabs v-model="tab" class="page-tabs">
-        <el-tab-pane name="pending"><template #label>待审批 <span class="tab-count">{{ pendingApplications.length }}</span></template></el-tab-pane>
-        <el-tab-pane label="已审批" name="processed" />
+        <el-tab-pane name="pending"><template #label>待审批 <span class="tab-count">{{ pendingCount }}</span></template></el-tab-pane>
+        <el-tab-pane name="processed"><template #label>已审批 <span class="tab-count">{{ processedCount }}</span></template></el-tab-pane>
       </el-tabs>
 
       <div class="filter-bar">
@@ -26,7 +29,7 @@
         <el-button :icon="RefreshLeft" text @click="resetFilters">清空</el-button>
       </div>
 
-      <el-table :data="filteredRows" row-key="id" height="calc(100vh - 365px)" class="data-table" @row-click="openDetail">
+      <el-table v-loading="loading" :data="filteredRows" row-key="id" height="calc(100vh - 365px)" class="data-table" @row-click="openDetail">
         <el-table-column prop="appNo" label="申请单号" min-width="174" fixed>
           <template #default="{ row }"><span class="primary-id">{{ row.appNo }}</span><el-tag v-if="row.source === 'APP'" size="small" effect="plain" class="source-tag">APP</el-tag></template>
         </el-table-column>
@@ -66,10 +69,15 @@
         <div class="drawer-section">
           <h3>申请信息</h3>
           <el-descriptions :column="2" border>
+            <el-descriptions-item label="申请单号">{{ current.appNo }}</el-descriptions-item>
             <el-descriptions-item label="申请类型">{{ current.typeName }}</el-descriptions-item>
+            <el-descriptions-item label="申请标题" :span="2">{{ current.title }}</el-descriptions-item>
             <el-descriptions-item label="紧急程度">{{ current.urgency || '普通' }}</el-descriptions-item>
             <el-descriptions-item label="期望时间">{{ current.expectedTime || '-' }}</el-descriptions-item>
             <el-descriptions-item label="服务地址">{{ current.address || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="提交时间">{{ current.createTime || current.createdAt || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="审批人">{{ current.approverName || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="审批时间">{{ current.approveTime || current.approvedAt || '-' }}</el-descriptions-item>
             <el-descriptions-item label="申请说明" :span="2">{{ current.summary }}</el-descriptions-item>
           </el-descriptions>
         </div>
@@ -92,13 +100,13 @@
     <el-dialog v-model="approveVisible" title="确认审批通过" width="500px">
       <div class="dialog-intro success"><CircleCheck /><div><strong>通过后将推进业务流程</strong><span>{{ current?.type === 'VISIT' ? '该拜访申请将直接生效，不生成派单任务。' : '系统将自动创建待派任务，并计算推荐候选人。' }}</span></div></div>
       <el-form label-position="top"><el-form-item label="审批意见（选填）"><el-input v-model="approveComment" type="textarea" :rows="3" maxlength="500" show-word-limit placeholder="请输入审批意见" /></el-form-item></el-form>
-      <template #footer><el-button @click="approveVisible = false">取消</el-button><el-button type="primary" @click="confirmApprove">确认通过</el-button></template>
+      <template #footer><el-button @click="approveVisible = false">取消</el-button><el-button type="primary" :loading="submitting" @click="confirmApprove">确认通过</el-button></template>
     </el-dialog>
 
     <el-dialog v-model="rejectVisible" title="驳回申请" width="500px">
       <div class="dialog-intro danger"><WarningFilled /><div><strong>驳回原因将同步到申请人 APP</strong><span>请清楚说明需要修改或补充的内容。</span></div></div>
       <el-form label-position="top"><el-form-item label="驳回原因" required :error="rejectError"><el-input v-model="rejectReason" type="textarea" :rows="4" maxlength="500" show-word-limit placeholder="请输入 5-500 字驳回原因" /></el-form-item></el-form>
-      <template #footer><el-button @click="rejectVisible = false">取消</el-button><el-button type="danger" @click="confirmReject">确认驳回</el-button></template>
+      <template #footer><el-button @click="rejectVisible = false">取消</el-button><el-button type="danger" :loading="submitting" @click="confirmReject">确认驳回</el-button></template>
     </el-dialog>
   </div>
 </template>
@@ -106,9 +114,9 @@
 <script setup>
 import { CircleCheck, Close, Refresh, RefreshLeft, Search, WarningFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import StatusTag from '../components/StatusTag.vue'
-import { approveApplication, pendingApplications, rejectApplication, state } from '../services/mockStore'
+import { approvalCenterApi } from '../services/remoteApi'
 import { canWrite } from '../services/session'
 
 const tab = ref('pending')
@@ -116,13 +124,18 @@ const detailVisible = ref(false)
 const approveVisible = ref(false)
 const rejectVisible = ref(false)
 const current = ref(null)
+const rows = ref([])
+const loading = ref(false)
+const submitting = ref(false)
 const approveComment = ref('')
 const rejectReason = ref('')
 const rejectError = ref('')
 const filters = reactive({ keyword: '', type: '', dept: '', date: [], overdue: false })
-const departments = [...new Set(state.applications.map((item) => item.dept))]
-const overdueCount = computed(() => pendingApplications.value.filter((item) => item.overdueHours > 0).length)
-const filteredRows = computed(() => state.applications
+const departments = computed(() => [...new Set(rows.value.map((item) => item.dept).filter(Boolean))])
+const pendingCount = computed(() => rows.value.filter((item) => item.status === 'PENDING').length)
+const processedCount = computed(() => rows.value.filter((item) => item.status !== 'PENDING').length)
+const overdueCount = computed(() => rows.value.filter((item) => item.status === 'PENDING' && item.overdueHours > 0).length)
+const filteredRows = computed(() => rows.value
   .filter((item) => tab.value === 'pending' ? item.status === 'PENDING' : item.status !== 'PENDING')
   .filter((item) => !filters.keyword || `${item.appNo}${item.applicant}${item.summary}`.toLowerCase().includes(filters.keyword.toLowerCase()))
   .filter((item) => !filters.type || item.type === filters.type)
@@ -130,12 +143,39 @@ const filteredRows = computed(() => state.applications
   .filter((item) => !filters.overdue || item.overdueHours > 0)
   .sort((a, b) => (b.overdueHours || 0) - (a.overdueHours || 0)))
 
+function upsertRow(application) {
+  const index = rows.value.findIndex((item) => String(item.id) === String(application.id))
+  if (index >= 0) rows.value.splice(index, 1, application)
+  else rows.value.unshift(application)
+}
+
+async function loadApplications() {
+  loading.value = true
+  try {
+    const page = await approvalCenterApi.list({ pageNo: 1, pageSize: 100, status: ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'] })
+    rows.value = page.list || []
+  } catch (error) {
+    ElMessage.error(error.message || '审批列表加载失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadApplications)
+
 function resetFilters() {
   Object.assign(filters, { keyword: '', type: '', dept: '', date: [], overdue: false })
 }
-function openDetail(row) {
+async function openDetail(row) {
   current.value = row
   detailVisible.value = true
+  try {
+    const detail = await approvalCenterApi.detail(row.id)
+    current.value = detail
+    upsertRow(detail)
+  } catch (error) {
+    ElMessage.error(error.message || '申请详情加载失败')
+  }
 }
 function openApprove(row) {
   current.value = row
@@ -148,31 +188,45 @@ function openReject(row) {
   rejectError.value = ''
   rejectVisible.value = true
 }
-function confirmApprove() {
+async function confirmApprove() {
+  if (!current.value || current.value.status !== 'PENDING') return
+  submitting.value = true
   try {
-    const task = approveApplication(current.value, approveComment.value)
+    const { application, task } = await approvalCenterApi.approve(current.value.id, { comment: approveComment.value })
+    current.value = application
+    upsertRow(application)
+    await loadApplications()
     approveVisible.value = false
     detailVisible.value = false
     ElMessage.success(task ? `审批通过，已创建待派任务 ${task.taskNo}` : '审批通过，结果将同步到申请人 APP')
   } catch (error) {
-    ElMessage.error(error.message)
+    ElMessage.error(error.message || '审批通过失败')
+  } finally {
+    submitting.value = false
   }
 }
-function confirmReject() {
+async function confirmReject() {
+  if (!current.value || current.value.status !== 'PENDING') return
   if (rejectReason.value.trim().length < 5) {
     rejectError.value = '驳回原因至少 5 个字'
     return
   }
+  submitting.value = true
   try {
-    rejectApplication(current.value, rejectReason.value.trim())
+    const { application } = await approvalCenterApi.reject(current.value.id, { rejectReason: rejectReason.value.trim() })
+    current.value = application
+    upsertRow(application)
+    await loadApplications()
     rejectVisible.value = false
     detailVisible.value = false
     ElMessage.success('已驳回，原因将同步到申请人 APP')
   } catch (error) {
-    ElMessage.error(error.message)
+    ElMessage.error(error.message || '审批驳回失败')
+  } finally {
+    submitting.value = false
   }
 }
 function actionName(action) {
-  return { SUBMIT: '提交申请', APPROVE: '审批通过', REJECT: '审批驳回' }[action] || action
+  return { SUBMIT: '提交申请', APPROVE: '审批通过', REJECT: '审批驳回', CANCEL: '申请撤回' }[action] || action
 }
 </script>

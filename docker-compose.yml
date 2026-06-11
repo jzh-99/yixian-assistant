@@ -39,7 +39,7 @@ services:
         condition: service_healthy
 
   frontend:
-    build: ./frontend-admin
+    build: ./pc
     container_name: zhiwei-frontend
     ports:
       - "6006:80"

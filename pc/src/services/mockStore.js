@@ -235,6 +235,9 @@ export function approveApplication(application, comment = '') {
   if (application.status !== 'PENDING') throw new Error('当前记录状态已变化，请刷新后重试')
   application.status = 'APPROVED'
   application.approveTime = nowText()
+  application.approvedAt = application.approveTime
+  application.approverId = session.user.userId
+  application.approverName = session.user.realName
   application.records.unshift({ action: 'APPROVE', operator: session.user.realName, comment: comment || '同意申请', time: application.approveTime })
   let task = null
   if (application.type !== 'VISIT') {
@@ -270,6 +273,9 @@ export function rejectApplication(application, reason) {
   application.status = 'REJECTED'
   application.rejectReason = reason
   application.approveTime = nowText()
+  application.approvedAt = application.approveTime
+  application.approverId = session.user.userId
+  application.approverName = session.user.realName
   application.records.unshift({ action: 'REJECT', operator: session.user.realName, comment: reason, time: application.approveTime })
   addLog('审批中心', '审批驳回', application.appNo, reason)
   persist()

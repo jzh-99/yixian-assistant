@@ -326,3 +326,26 @@ INSERT INTO opportunity (customer_id, manager_id, title, status, intent_level, e
 (1, 4, '中电科技千兆专线升级', 'HIGH_INTENT', 'HIGH', 12000000, NOW() - INTERVAL 1 DAY),
 (2, 4, '金融控股数据中心组网', 'FOLLOWING',  'MEDIUM', 5000000, NOW() - INTERVAL 3 DAY),
 (3, 4, '政务中心视频会议系统', 'NEW',         'LOW',   2000000, NOW() - INTERVAL 5 DAY);
+
+-- ======================== 补充表（从 APP zip 迁移） ========================
+
+CREATE TABLE IF NOT EXISTS opportunity_follow_record (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  opportunity_id BIGINT NOT NULL,
+  operator_id BIGINT NOT NULL,
+  content TEXT NOT NULL,
+  next_contact_time DATETIME,
+  create_time DATETIME,
+  INDEX idx_follow_opportunity (opportunity_id, create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS idempotency_record (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  idempotency_key VARCHAR(100) NOT NULL UNIQUE,
+  user_id BIGINT,
+  module VARCHAR(50),
+  response_json LONGTEXT,
+  expire_time DATETIME,
+  create_time DATETIME,
+  INDEX idx_idempotency_expire (expire_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='生产环境替换内存幂等实现时使用';

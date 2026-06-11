@@ -76,7 +76,7 @@ mvn spring-boot:run
 ### 前端后台
 
 ```bash
-cd frontend-admin
+cd pc
 npm install
 npm run dev
 # 前端运行在 http://localhost:5173
@@ -148,14 +148,20 @@ zhiwei/
 │   │   ├── ai/            # AI接口（6号）
 │   │   └── common/        # 公共工具
 │   └── Dockerfile
-├── frontend-admin/        # Vue3 PC 后台
+├── pc/                    # Vue3 PC 后台
 │   ├── src/
 │   │   ├── views/         # 页面组件（各人负责各模块）
 │   │   ├── components/    # 公共组件（含 AiBrainDrawer）
-│   │   ├── stores/        # Pinia 状态管理
-│   │   ├── utils/http.js  # 请求封装
+│   │   ├── layouts/       # 布局
+│   │   ├── services/      # API 请求封装
 │   │   └── router/        # 路由配置
 │   └── Dockerfile
+├── app/                   # UniApp 装维 APP
+│   ├── screens/           # 页面组件
+│   ├── components/        # 公共组件
+│   ├── services/          # API 请求封装
+│   ├── domain/            # 数据模型与适配器
+│   └── config/            # 运行时配置
 ├── sql/
 │   └── init.sql           # 建表 + 演示数据
 ├── docs/                  # 产品需求文档
