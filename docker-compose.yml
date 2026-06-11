@@ -5,10 +5,10 @@ services:
     image: mysql:8.0
     container_name: zhiwei-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-zhiwei123}
-      MYSQL_DATABASE: zhiwei
-      MYSQL_USER: zhiwei
-      MYSQL_PASSWORD: ${DB_PASSWORD:-zhiwei123}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-yixian123}
+      MYSQL_DATABASE: yixian
+      MYSQL_USER: yixian
+      MYSQL_PASSWORD: ${DB_PASSWORD:-yixian123}
     ports:
       - "3306:3306"
     volumes:
@@ -28,10 +28,10 @@ services:
     environment:
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_NAME: zhiwei
-      DB_USER: zhiwei
-      DB_PASSWORD: ${DB_PASSWORD:-zhiwei123}
-      JWT_SECRET: ${JWT_SECRET:-zhiwei-jwt-secret-key-2026}
+      DB_NAME: yixian
+      DB_USER: yixian
+      DB_PASSWORD: ${DB_PASSWORD:-yixian123}
+      JWT_SECRET: ${JWT_SECRET:-yixian-jwt-secret-key-2026}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       DEEPSEEK_BASE_URL: https://api.deepseek.com
     depends_on:
@@ -42,7 +42,7 @@ services:
     build: ./frontend-admin
     container_name: zhiwei-frontend
     ports:
-      - "80:80"
+      - "6006:80"
     depends_on:
       - backend
 
