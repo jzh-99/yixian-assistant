@@ -33,3 +33,4 @@ deepseek:
 
 file:
   upload-dir: /uploads
+  public-upload-prefix: /uploads

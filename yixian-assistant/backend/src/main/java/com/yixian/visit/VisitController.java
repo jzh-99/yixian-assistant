@@ -1,6 +1,6 @@
 package com.yixian.visit;
 
-import com.yixian.common.api.ApiResponse;
+import com.yixian.common.Result;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,37 +20,37 @@ public class VisitController {
     private final OpportunityService opportunityService;
 
     @GetMapping("/visits")
-    public ApiResponse<List<VisitRecord>> visits() {
-        return ApiResponse.success(visitService.list());
+    public Result<List<VisitRecord>> visits() {
+        return Result.ok(visitService.list());
     }
 
     @PostMapping("/visits/{id}/checkin")
-    public ApiResponse<VisitRecord> checkin(
+    public Result<VisitRecord> checkin(
             @PathVariable Long id,
             @RequestBody VisitService.WriteRequest request
     ) {
-        return ApiResponse.success(visitService.checkin(id, request));
+        return Result.ok(visitService.checkin(id, request));
     }
 
     @GetMapping("/opportunities")
-    public ApiResponse<List<Opportunity>> opportunities(
+    public Result<List<Opportunity>> opportunities(
             @RequestParam(required = false) String status
     ) {
-        return ApiResponse.success(opportunityService.list(status));
+        return Result.ok(opportunityService.list(status));
     }
 
     @PostMapping("/opportunities")
-    public ApiResponse<Opportunity> createOpportunity(
+    public Result<Opportunity> createOpportunity(
             @RequestBody OpportunityService.WriteRequest request
     ) {
-        return ApiResponse.success(opportunityService.create(request));
+        return Result.ok(opportunityService.create(request));
     }
 
     @PutMapping("/opportunities/{id}")
-    public ApiResponse<Opportunity> updateOpportunity(
+    public Result<Opportunity> updateOpportunity(
             @PathVariable Long id,
             @RequestBody OpportunityService.WriteRequest request
     ) {
-        return ApiResponse.success(opportunityService.update(id, request));
+        return Result.ok(opportunityService.update(id, request));
     }
 }

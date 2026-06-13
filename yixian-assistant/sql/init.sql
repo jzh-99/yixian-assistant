@@ -73,6 +73,10 @@ CREATE TABLE IF NOT EXISTS task (
   assignee_id          BIGINT,
   dept_id              BIGINT,
   status               VARCHAR(30)  DEFAULT 'UNASSIGNED' COMMENT 'UNASSIGNED/PENDING_ACCEPTANCE/ACCEPTED/IN_PROGRESS/COMPLETED/CANCELLED',
+  customer_name        VARCHAR(200),
+  contact_phone        VARCHAR(30),
+  address              VARCHAR(300),
+  materials_json       TEXT,
   expected_finish_time DATETIME,
   actual_finish_time   DATETIME,
   ai_score             DECIMAL(5,2),
@@ -102,6 +106,7 @@ CREATE TABLE IF NOT EXISTS task_feedback (
   operator_id      BIGINT,
   actual_materials TEXT    COMMENT '实际用料JSON数组',
   result_desc      TEXT,
+  image_urls_json  TEXT,
   signature_url    VARCHAR(500),
   create_time      DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -149,6 +154,7 @@ CREATE TABLE IF NOT EXISTS visit_record (
 
 CREATE TABLE IF NOT EXISTS opportunity (
   id                  BIGINT      PRIMARY KEY AUTO_INCREMENT,
+  opportunity_no      VARCHAR(50) UNIQUE,
   customer_id         BIGINT      NOT NULL,
   manager_id          BIGINT      NOT NULL,
   title               VARCHAR(200),
@@ -156,7 +162,9 @@ CREATE TABLE IF NOT EXISTS opportunity (
   intent_level        VARCHAR(20) COMMENT 'LOW/MEDIUM/HIGH',
   estimated_amount    BIGINT      COMMENT '预计金额，单位分',
   expected_close_date DATE,
+  next_contact_time   DATETIME,
   last_follow_time    DATETIME,
+  description         TEXT,
   create_time         DATETIME    DEFAULT CURRENT_TIMESTAMP,
   update_time         DATETIME    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   is_deleted          TINYINT     DEFAULT 0

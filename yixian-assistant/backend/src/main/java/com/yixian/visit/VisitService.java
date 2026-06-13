@@ -1,8 +1,8 @@
 package com.yixian.visit;
 
-import com.yixian.auth.AuthContext;
-import com.yixian.common.exception.BusinessException;
-import com.yixian.common.idempotency.IdempotencyService;
+import com.yixian.auth.UserContext;
+import com.yixian.common.BizException;
+import com.yixian.common.IdempotencyService;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +17,7 @@ public class VisitService {
     public List<VisitRecord> list() {
         return visitMapper.selectList(
                 com.baomidou.mybatisplus.core.toolkit.Wrappers.<VisitRecord>lambdaQuery()
-                        .eq(VisitRecord::getVisitorId, AuthContext.required().userId())
+                        .eq(VisitRecord::getVisitorId, UserContext.get().getUserId())
                         .orderByAsc(VisitRecord::getVisitTime)
         );
     }
@@ -25,11 +25,12 @@ public class VisitService {
     public VisitRecord checkin(Long id, WriteRequest request) {
         return idempotencyService.execute(request.idempotencyKey(), () -> {
             VisitRecord record = visitMapper.selectById(id);
-            if (record == null || !record.getVisitorId().equals(AuthContext.required().userId())) {
-                throw new BusinessException(404, "拜访记录不存在");
+            Long currentUserId = UserContext.get().getUserId();
+            if (record == null || !record.getVisitorId().equals(currentUserId)) {
+                throw new BizException(404, "拜访记录不存在");
             }
             if (record.getCheckinTime() != null) {
-                throw new BusinessException(1002, "该拜访已签到");
+                throw new BizException(1002, "该拜访已签到");
             }
             record.setCheckinTime(LocalDateTime.now());
             record.setUpdateTime(LocalDateTime.now());

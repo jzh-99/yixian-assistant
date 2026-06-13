@@ -1,9 +1,9 @@
 package com.yixian.visit;
 
-import com.yixian.auth.AuthContext;
-import com.yixian.auth.CurrentUser;
-import com.yixian.common.exception.BusinessException;
-import com.yixian.common.idempotency.IdempotencyService;
+import com.yixian.auth.UserContext;
+import com.yixian.auth.UserContext.CurrentUser;
+import com.yixian.common.BizException;
+import com.yixian.common.IdempotencyService;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -25,7 +25,7 @@ public class OpportunityService {
     public List<Opportunity> list(String status) {
         return opportunityMapper.selectList(
                 com.baomidou.mybatisplus.core.toolkit.Wrappers.<Opportunity>lambdaQuery()
-                        .eq(Opportunity::getManagerId, AuthContext.required().userId())
+                        .eq(Opportunity::getManagerId, UserContext.get().getUserId())
                         .eq(status != null && !status.isBlank(), Opportunity::getStatus, status)
                         .orderByDesc(Opportunity::getUpdateTime)
         );
@@ -35,12 +35,12 @@ public class OpportunityService {
     public Opportunity create(WriteRequest request) {
         return idempotencyService.execute(request.idempotencyKey(), () -> {
             validateStatus(request.status());
-            CurrentUser user = AuthContext.required();
+            CurrentUser user = UserContext.get();
             LocalDateTime now = LocalDateTime.now();
             Opportunity entity = new Opportunity();
             entity.setOpportunityNo(createNo(now));
-            entity.setCustomerId(resolveCustomer(request.customerId(), request.customerName(), user.userId()));
-            entity.setManagerId(user.userId());
+            entity.setCustomerId(resolveCustomer(request.customerId(), request.customerName(), user.getUserId()));
+            entity.setManagerId(user.getUserId());
             entity.setTitle(request.title());
             entity.setStatus(request.status());
             entity.setIntentLevel(request.intentLevel());
@@ -59,8 +59,9 @@ public class OpportunityService {
     public Opportunity update(Long id, WriteRequest request) {
         return idempotencyService.execute(request.idempotencyKey(), () -> {
             Opportunity entity = opportunityMapper.selectById(id);
-            if (entity == null || !entity.getManagerId().equals(AuthContext.required().userId())) {
-                throw new BusinessException(404, "商机不存在");
+            Long currentUserId = UserContext.get().getUserId();
+            if (entity == null || !entity.getManagerId().equals(currentUserId)) {
+                throw new BizException(404, "商机不存在");
             }
             if (request.status() != null) {
                 validateStatus(request.status());
@@ -77,7 +78,7 @@ public class OpportunityService {
             if (request.followUp() != null && request.followUp().content() != null) {
                 OpportunityFollowRecord follow = new OpportunityFollowRecord();
                 follow.setOpportunityId(id);
-                follow.setOperatorId(AuthContext.required().userId());
+                follow.setOperatorId(currentUserId);
                 follow.setContent(request.followUp().content());
                 follow.setNextContactTime(parseDateTime(request.nextContactTime()));
                 follow.setCreateTime(LocalDateTime.now());
@@ -93,7 +94,7 @@ public class OpportunityService {
     private Long resolveCustomer(Long customerId, String customerName, Long managerId) {
         if (customerId != null) return customerId;
         if (customerName == null || customerName.isBlank()) {
-            throw new BusinessException(1001, "客户不能为空");
+            throw new BizException(1001, "客户不能为空");
         }
         Customer existing = customerMapper.selectOne(
                 com.baomidou.mybatisplus.core.toolkit.Wrappers.<Customer>lambdaQuery()
@@ -114,7 +115,7 @@ public class OpportunityService {
 
     private void validateStatus(String status) {
         if (status == null || !STATUSES.contains(status)) {
-            throw new BusinessException(1001, "商机状态不正确");
+            throw new BizException(1001, "商机状态不正确");
         }
     }
 

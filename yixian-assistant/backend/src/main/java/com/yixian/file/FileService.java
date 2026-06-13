@@ -1,8 +1,8 @@
 package com.yixian.file;
 
-import com.yixian.auth.AuthContext;
-import com.yixian.common.exception.BusinessException;
-import com.yixian.common.idempotency.IdempotencyService;
+import com.yixian.auth.UserContext;
+import com.yixian.common.BizException;
+import com.yixian.common.IdempotencyService;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,10 +20,10 @@ public class FileService {
     private final FileAttachmentMapper fileMapper;
     private final IdempotencyService idempotencyService;
 
-    @Value("${zhiwei.upload-dir}")
+    @Value("${file.upload-dir:/uploads}")
     private String uploadDir;
 
-    @Value("${zhiwei.public-upload-prefix}")
+    @Value("${file.public-upload-prefix:/uploads}")
     private String publicPrefix;
 
     public FileResult upload(
@@ -34,7 +34,7 @@ public class FileService {
     ) {
         return idempotencyService.execute(idempotencyKey, () -> {
             if (file == null || file.isEmpty()) {
-                throw new BusinessException(1001, "上传文件不能为空");
+                throw new BizException(1001, "上传文件不能为空");
             }
             String extension = extensionOf(file.getOriginalFilename());
             String fileNo = UUID.randomUUID().toString().replace("-", "");
@@ -42,13 +42,13 @@ public class FileService {
             Path folder = Path.of(uploadDir, month).toAbsolutePath().normalize();
             Path target = folder.resolve(fileNo + extension).normalize();
             if (!target.startsWith(folder)) {
-                throw new BusinessException(1001, "文件路径不合法");
+                throw new BizException(1001, "文件路径不合法");
             }
             try {
                 Files.createDirectories(folder);
                 file.transferTo(target);
             } catch (IOException exception) {
-                throw new BusinessException(500, "文件保存失败");
+                throw new BizException(500, "文件保存失败");
             }
 
             String fileUrl = publicPrefix + "/" + month + "/" + target.getFileName();
@@ -57,7 +57,7 @@ public class FileService {
             attachment.setOriginalName(file.getOriginalFilename());
             attachment.setFileUrl(fileUrl);
             attachment.setFileSize(file.getSize());
-            attachment.setUploaderId(AuthContext.required().userId());
+            attachment.setUploaderId(UserContext.get().getUserId());
             attachment.setBizType(bizType);
             attachment.setBizId(bizId);
             attachment.setCreateTime(LocalDateTime.now());

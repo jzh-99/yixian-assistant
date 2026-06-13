@@ -1,6 +1,6 @@
 package com.yixian.file;
 
-import com.yixian.common.api.ApiResponse;
+import com.yixian.common.Result;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,12 +15,12 @@ public class FileController {
     private final FileService fileService;
 
     @PostMapping("/upload")
-    public ApiResponse<FileService.FileResult> upload(
+    public Result<FileService.FileResult> upload(
             @RequestParam MultipartFile file,
             @RequestParam(required = false) String bizType,
             @RequestParam(required = false) Long bizId,
             @RequestParam String idempotencyKey
     ) {
-        return ApiResponse.success(fileService.upload(file, bizType, bizId, idempotencyKey));
+        return Result.ok(fileService.upload(file, bizType, bizId, idempotencyKey));
     }
 }
