@@ -18,6 +18,7 @@ import java.util.Map;
 public class AiService {
 
     private final AiGateway gateway;
+    private final AiQueryService aiQueryService;
     private final AiQueryLogMapper logMapper;
 
     public Map<String, Object> extract(ExtractRequest request) {
@@ -36,7 +37,14 @@ public class AiService {
         String question = request == null ? "" : request.question();
         String sessionId = request == null ? "" : request.sessionId();
         Map<String, Object> context = request == null ? Map.of() : request.context();
-        return logged(question, () -> gateway.query(question, sessionId, context));
+        return logged(question, () -> {
+            try {
+                return aiQueryService.querySmartBrain(question, sessionId, context);
+            } catch (Exception exception) {
+                log.warn("Controlled AI query failed, fallback to gateway: {}", exception.getMessage());
+                return gateway.query(question, sessionId, context);
+            }
+        });
     }
 
     public Map<String, Object> dispatchReason(DispatchReasonRequest request) {

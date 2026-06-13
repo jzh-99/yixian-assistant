@@ -2,6 +2,7 @@ package com.yixian.common;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.FieldError;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -21,6 +22,12 @@ public class GlobalExceptionHandler {
         FieldError fe = e.getBindingResult().getFieldErrors().stream().findFirst().orElse(null);
         String msg = fe != null ? fe.getField() + ": " + fe.getDefaultMessage() : "参数校验失败";
         return Result.fail(1001, msg);
+    }
+
+    @ExceptionHandler(RestClientException.class)
+    public Result<?> handleRestClient(RestClientException e) {
+        log.error("外部 API 调用失败", e);
+        return Result.fail(2002, "AI 服务暂时不可用，请稍后重试");
     }
 
     @ExceptionHandler(Exception.class)
