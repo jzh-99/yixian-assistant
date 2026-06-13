@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: zhiwei-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-yixian123}
+      MYSQL_DATABASE: yixian
+      MYSQL_USER: yixian
+      MYSQL_PASSWORD: ${DB_PASSWORD:-yixian123}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: zhiwei-backend
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: yixian
+      DB_USER: yixian
+      DB_PASSWORD: ${DB_PASSWORD:-yixian123}
+      JWT_SECRET: ${JWT_SECRET:-yixian-jwt-secret-key-2026}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_BASE_URL: https://api.deepseek.com
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend-admin
+    container_name: zhiwei-frontend
+    ports:
+      - "6006:80"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:

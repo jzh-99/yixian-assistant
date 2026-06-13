@@ -1,0 +1,19 @@
+{
+  "name": "翼线助手",
+  "short_name": "翼线助手",
+  "description": "面向装维人员和客户经理的一线业务智能助手",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f7fa",
+  "theme_color": "#1769e0",
+  "lang": "zh-CN",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

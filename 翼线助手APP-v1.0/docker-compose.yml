@@ -1,0 +1,46 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: zhiwei-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-zhiwei}
+      MYSQL_USER: ${DB_USER:-zhiwei}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-zhiwei123}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root123}
+      TZ: Asia/Shanghai
+    ports:
+      - "${DB_EXPOSE_PORT:-3306}:3306"
+    volumes:
+      - zhiwei_mysql_data:/var/lib/mysql
+      - ./backend/src/main/resources/db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${DB_ROOT_PASSWORD:-root123}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+    container_name: zhiwei-backend
+    restart: unless-stopped
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-zhiwei}
+      DB_USER: ${DB_USER:-zhiwei}
+      DB_PASSWORD: ${DB_PASSWORD:-zhiwei123}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      UPLOAD_DIR: /app/uploads
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    volumes:
+      - zhiwei_uploads:/app/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  zhiwei_mysql_data:
+  zhiwei_uploads:
