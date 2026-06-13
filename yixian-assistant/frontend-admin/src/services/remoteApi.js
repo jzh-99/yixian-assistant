@@ -1,4 +1,5 @@
 import { approveApplication, rejectApplication, state } from './mockStore'
+import { normalizeOpportunity } from './opportunityNormalizer'
 
 export const isRemoteMode = import.meta.env.VITE_API_MODE === 'remote'
 const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1'
@@ -211,8 +212,13 @@ export async function syncFromAppBackend() {
   if (visitsResult.status === 'fulfilled' && visitsResult.value.length) {
     state.visits.splice(0, state.visits.length, ...mergeById(state.visits, visitsResult.value))
   }
-  if (opportunitiesResult.status === 'fulfilled' && opportunitiesResult.value.length) {
-    state.opportunities.splice(0, state.opportunities.length, ...mergeById(state.opportunities, opportunitiesResult.value))
+  if (opportunitiesResult.status === 'fulfilled') {
+    const opportunityRows = Array.isArray(opportunitiesResult.value)
+      ? opportunitiesResult.value
+      : opportunitiesResult.value?.list || []
+    if (opportunityRows.length) {
+      state.opportunities.splice(0, state.opportunities.length, ...mergeById(state.opportunities, opportunityRows.map((item) => normalizeOpportunity(item, state.people))))
+    }
   }
 
   return {

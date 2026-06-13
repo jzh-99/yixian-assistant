@@ -22,6 +22,7 @@
             <span v-if="unassignedTasks.length && !collapsed" class="nav-badge amber">{{ unassignedTasks.length }}</span>
           </el-menu-item>
           <el-menu-item index="/monitor"><el-icon><Warning /></el-icon><template #title>任务监控</template></el-menu-item>
+          <el-menu-item index="/opportunities"><el-icon><Briefcase /></el-icon><template #title>商机管理</template></el-menu-item>
           <div v-show="!collapsed" class="nav-section">统计分析</div>
           <el-menu-item index="/efficiency"><el-icon><TrendCharts /></el-icon><template #title>装维效率</template></el-menu-item>
           <el-menu-item index="/business"><el-icon><PieChart /></el-icon><template #title>拜访与商机</template></el-menu-item>
@@ -76,7 +77,7 @@
 
 <script setup>
 import {
-  ArrowDown, Bell, CircleCheck, DataAnalysis, DocumentChecked, Expand, Fold, OfficeBuilding,
+  ArrowDown, Bell, Briefcase, CircleCheck, DataAnalysis, DocumentChecked, Expand, Fold, OfficeBuilding,
   PieChart, Promotion, QuestionFilled, Setting, TrendCharts, User, Warning,
 } from '@element-plus/icons-vue'
 import { onMounted, ref } from 'vue'

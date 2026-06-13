@@ -200,6 +200,10 @@ button { color: inherit; }
 .tag-list { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
 .tag-list > span:last-child:not(.el-tag) { color: #94a3b8; font-size: 11px; }
 .status-dot { display: inline-block; width: 6px; height: 6px; margin-right: 4px; border-radius: 50%; vertical-align: 1px; }
+.opportunity-cell { display: flex; min-width: 0; flex-direction: column; gap: 4px; }
+.opportunity-cell > span { display: flex; align-items: center; gap: 2px; }
+.opportunity-cell b { overflow: hidden; color: #1e293b; font-size: 13px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.opportunity-cell small { overflow: hidden; color: #94a3b8; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .attention-banner { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding: 12px 15px; border: 1px solid #fecaca; border-radius: 9px; color: #b91c1c; background: #fff7f7; }
 .attention-banner > svg { width: 20px; }
 .attention-banner > div { display: flex; flex: 1; flex-direction: column; gap: 2px; }
@@ -224,6 +228,13 @@ button { color: inherit; }
 .drawer-section .el-timeline { padding-left: 4px; }
 .drawer-section .el-timeline-item__content p { margin: 5px 0 0; color: #64748b; font-size: 12px; }
 .section-heading { display: flex; align-items: flex-start; justify-content: space-between; }
+.section-heading h3 { margin-bottom: 4px; }
+.opportunity-dispatch-state { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 13px 14px; border: 1px solid #e2e8f0; border-radius: 8px; color: #475569; background: #f8fafc; }
+.opportunity-dispatch-state.attention { border-color: #fed7aa; color: #b45309; background: #fff7ed; }
+.opportunity-dispatch-state > svg { width: 22px; flex: 0 0 auto; }
+.opportunity-dispatch-state > div { display: flex; flex-direction: column; gap: 4px; }
+.opportunity-dispatch-state strong { color: inherit; font-size: 13px; }
+.opportunity-dispatch-state span { color: inherit; opacity: .72; font-size: 12px; }
 .drawer-footer { position: sticky; z-index: 5; bottom: 0; display: flex; min-height: 68px; align-items: center; justify-content: flex-end; gap: 10px; padding: 13px 24px; border-top: 1px solid var(--line); background: #fff; box-shadow: 0 -6px 18px rgba(15,23,42,.04); }
 .drawer-footer > span { display: flex; flex: 1; align-items: center; gap: 5px; color: #94a3b8; font-size: 11px; }
 .drawer-footer > span svg { width: 14px; }

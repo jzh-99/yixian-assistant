@@ -34,6 +34,11 @@ export const OPPORTUNITY_STATUS = Object.freeze({
   CLOSED: 'CLOSED',
 })
 
+export const CUSTOMER_TYPE = Object.freeze({
+  PUBLIC: 'PUBLIC',
+  ENTERPRISE: 'ENTERPRISE',
+})
+
 const roleMeta = {
   [ROLE_CODE.MAINTAINER]: { roleName: '装维人员', fallbackName: '装维人员' },
   [ROLE_CODE.ACCOUNT_MANAGER]: { roleName: '客户经理', fallbackName: '客户经理' },

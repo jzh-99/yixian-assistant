@@ -2,11 +2,13 @@ import { runtimeConfig } from '../config/runtime'
 import {
   APPLICATION_STATUS,
   APPLICATION_TYPE,
+  CUSTOMER_TYPE,
+  OPPORTUNITY_STATUS,
   ROLE_CODE,
   TASK_STATUS,
   normalizeCurrentUser,
 } from '../domain/contracts'
-import { assistantAnswers, demoUsers, initialApplications } from '../data/mockData'
+import { assistantAnswers, demoUsers, initialApplications, initialOpportunities } from '../data/mockData'
 import { authStore } from './authStore'
 import { createIdempotencyKey, request, withIdempotency } from './httpClient'
 
@@ -67,7 +69,32 @@ function initialApplicationToApi(item) {
   }
 }
 
+function initialOpportunityToApi(item) {
+  return {
+    id: item.id,
+    opportunityNo: item.code,
+    customerName: item.customer,
+    customerType: item.customerType || CUSTOMER_TYPE.PUBLIC,
+    title: item.name,
+    status: item.status || OPPORTUNITY_STATUS.NEW,
+    intentLevel: item.level === 'A' ? 'HIGH' : item.level === 'C' ? 'LOW' : 'MEDIUM',
+    estimatedAmount: Math.round(Number(item.amount || 0) * 100),
+    needMaintainer: Boolean(item.needMaintainer),
+    nextContactTime: item.nextContact,
+    managerId: item.ownerId,
+    managerName: item.owner,
+    ownerJobNo: item.ownerJobNo,
+    ownerRoleCode: item.ownerRoleCode,
+    description: item.description || '',
+    follows: item.follows || [],
+    createTime: item.createdAt,
+    updateTime: item.lastFollowAt || item.createdAt,
+    lastFollowTime: item.lastFollowAt,
+  }
+}
+
 const mockApplications = initialApplications.map(initialApplicationToApi)
+const mockOpportunities = initialOpportunities.map(initialOpportunityToApi)
 
 function currentMockUser() {
   return authStore.getSession() || normalizeCurrentUser(demoUsers.ops)
@@ -86,6 +113,21 @@ function filterMockApplications(params = {}, onlyCurrentUser = false) {
     .filter((item) => !params.type || item.type === params.type)
     .filter((item) => !params.status || item.status === params.status)
     .sort((a, b) => String(b.createTime || '').localeCompare(String(a.createTime || '')))
+}
+
+function filterMockOpportunities(params = {}) {
+  const user = currentMockUser()
+  return mockOpportunities
+    .filter((item) => String(item.managerId) === String(user.id))
+    .filter((item) => !params.status || item.status === params.status)
+    .sort((a, b) => String(b.updateTime || b.createTime || '').localeCompare(String(a.updateTime || a.createTime || '')))
+}
+
+function findMockOpportunity(id) {
+  const user = currentMockUser()
+  const opportunity = mockOpportunities.find((item) => String(item.id) === String(id))
+  if (!opportunity || String(opportunity.managerId) !== String(user.id)) throw new Error('商机不存在')
+  return opportunity
 }
 
 function createMockApprovalResult(id, patch) {
@@ -346,17 +388,63 @@ const mockApi = {
     },
   },
   opportunities: {
-    async list() {
+    async list(params = {}) {
       await wait()
-      return []
+      return filterMockOpportunities(params)
     },
     async create(payload) {
       await wait()
-      return { id: `OPP-${Date.now()}`, opportunityNo: `SJ${Date.now().toString().slice(-11)}`, ...payload }
+      const user = currentMockUser()
+      const opportunity = {
+        id: `OPP-${Date.now()}`,
+        opportunityNo: `SJ${Date.now().toString().slice(-11)}`,
+        customerName: payload.customerName,
+        customerType: payload.customerType || CUSTOMER_TYPE.PUBLIC,
+        title: payload.title,
+        status: payload.status || OPPORTUNITY_STATUS.NEW,
+        intentLevel: payload.intentLevel,
+        estimatedAmount: payload.estimatedAmount,
+        needMaintainer: Boolean(payload.needMaintainer),
+        nextContactTime: payload.nextContactTime,
+        managerId: user.id,
+        managerName: user.name,
+        ownerJobNo: user.jobNo,
+        ownerRoleCode: user.roleCode,
+        description: payload.description || '',
+        follows: [],
+        createTime: nowText(),
+        updateTime: nowText(),
+        lastFollowTime: '',
+      }
+      mockOpportunities.unshift(opportunity)
+      return { ...opportunity }
     },
     async update(id, payload) {
       await wait()
-      return { id, ...payload }
+      const opportunity = findMockOpportunity(id)
+      Object.assign(opportunity, {
+        customerName: payload.customerName ?? opportunity.customerName,
+        customerType: payload.customerType ?? opportunity.customerType,
+        title: payload.title ?? opportunity.title,
+        status: payload.status ?? opportunity.status,
+        intentLevel: payload.intentLevel ?? opportunity.intentLevel,
+        estimatedAmount: payload.estimatedAmount ?? opportunity.estimatedAmount,
+        needMaintainer: payload.needMaintainer ?? opportunity.needMaintainer,
+        nextContactTime: payload.nextContactTime ?? opportunity.nextContactTime,
+        description: payload.description ?? opportunity.description,
+        updateTime: nowText(),
+      })
+      if (payload.followUp?.content) {
+        const follow = {
+          id: `FOLLOW-${Date.now()}`,
+          time: nowText(),
+          content: payload.followUp.content,
+          owner: currentMockUser().name,
+        }
+        opportunity.follows = [follow, ...(opportunity.follows || [])]
+        opportunity.lastFollowTime = follow.time
+      }
+      return { ...opportunity }
     },
   },
   ai: {

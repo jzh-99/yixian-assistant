@@ -8,6 +8,7 @@ const ApprovalsView = () => import('../views/ApprovalsView.vue')
 const PeopleView = () => import('../views/PeopleView.vue')
 const DispatchView = () => import('../views/DispatchView.vue')
 const MonitorView = () => import('../views/MonitorView.vue')
+const OpportunityManagementView = () => import('../views/OpportunityManagementView.vue')
 const EfficiencyView = () => import('../views/EfficiencyView.vue')
 const BusinessView = () => import('../views/BusinessView.vue')
 const SettingsView = () => import('../views/SettingsView.vue')
@@ -26,6 +27,7 @@ const router = createRouter({
         { path: 'people', name: 'people', component: PeopleView, meta: { title: '人员与技能' } },
         { path: 'dispatch', name: 'dispatch', component: DispatchView, meta: { title: '任务派单' } },
         { path: 'monitor', name: 'monitor', component: MonitorView, meta: { title: '任务监控' } },
+        { path: 'opportunities', name: 'opportunities-management', component: OpportunityManagementView, meta: { title: '商机管理' } },
         { path: 'efficiency', name: 'efficiency', component: EfficiencyView, meta: { title: '装维效率' } },
         { path: 'business', name: 'business', component: BusinessView, meta: { title: '拜访与商机' } },
         { path: 'settings', name: 'settings', component: SettingsView, meta: { title: '系统设置', superOnly: true } },

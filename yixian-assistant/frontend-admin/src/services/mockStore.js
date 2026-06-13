@@ -1,4 +1,5 @@
 import { computed, reactive } from 'vue'
+import { normalizeOpportunity } from './opportunityNormalizer'
 import { session } from './session'
 
 const STORAGE_KEY = 'yixian-admin-demo-v1'
@@ -165,11 +166,184 @@ const seed = {
     { id: 5, date: '2026-06-11', manager: '陈晓', dept: '江宁分局', customer: '金陵智造产业园', industry: '智能制造', status: 'COMPLETED' },
   ],
   opportunities: [
-    { id: 1, code: 'OPP20260608012', customer: '南京远景科技有限公司', industry: '软件信息', level: '高', amount: 1200000, status: 'FOLLOWING', statusName: '跟进中', owner: '王敏', lastFollowTime: '2026-06-11 09:20:00' },
-    { id: 2, code: 'OPP20260606008', customer: '金陵智造产业园', industry: '智能制造', level: '高', amount: 2800000, status: 'HIGH_INTENT', statusName: '高意向', owner: '王敏', lastFollowTime: '2026-06-10 16:30:00' },
-    { id: 3, code: 'OPP20260603003', customer: '江苏云创信息技术有限公司', industry: '软件信息', level: '中', amount: 560000, status: 'NEW', statusName: '新建', owner: '王敏', lastFollowTime: '2026-06-08 11:20:00' },
-    { id: 4, code: 'OPP20260528019', customer: '华东智造有限公司', industry: '智能制造', level: '高', amount: 1900000, status: 'SIGNED', statusName: '已签约', owner: '陈晓', lastFollowTime: '2026-06-09 15:10:00' },
-    { id: 5, code: 'OPP20260522011', customer: '南京科创园', industry: '园区', level: '中', amount: 860000, status: 'FOLLOWING', statusName: '跟进中', owner: '陈晓', lastFollowTime: '2026-06-07 10:05:00' },
+    {
+      id: 1,
+      code: 'SJ20260608012',
+      customer: '南京远景科技有限公司',
+      title: '园区云网升级项目',
+      industry: '软件信息',
+      customerType: 'ENTERPRISE',
+      level: '高',
+      amount: 1200000,
+      status: 'FOLLOWING',
+      statusName: '跟进中',
+      needMaintainer: true,
+      nextContactTime: '2026-06-13 16:00:00',
+      ownerId: 201,
+      owner: '王敏',
+      ownerJobNo: 'AM10028',
+      ownerRoleCode: 'ACCOUNT_MANAGER',
+      creatorId: 201,
+      creatorName: '王敏',
+      creatorRole: '客户经理',
+      creatorJobNo: 'AM10028',
+      creatorDept: '政企客户部',
+      createTime: '2026-06-08 09:20:00',
+      lastFollowTime: '2026-06-11 09:20:00',
+      description: '客户计划升级园区网络并增加双线路由能力。',
+      follows: [
+        { id: 'FOLLOW-001', time: '2026-06-10 09:20:00', content: '客户确认需要双线路由方案，计划本周五安排技术交流。', owner: '王敏' },
+        { id: 'FOLLOW-002', time: '2026-06-09 14:10:00', content: '完成首次需求访谈，客户关注网络稳定性和故障切换时长。', owner: '王敏' },
+      ],
+      source: 'APP',
+    },
+    {
+      id: 2,
+      code: 'SJ20260606008',
+      customer: '金陵智造产业园',
+      title: '5G 专网扩容',
+      industry: '智能制造',
+      customerType: 'ENTERPRISE',
+      level: '高',
+      amount: 2800000,
+      status: 'HIGH_INTENT',
+      statusName: '高意向',
+      needMaintainer: true,
+      nextContactTime: '2026-06-14 10:00:00',
+      ownerId: 201,
+      owner: '王敏',
+      ownerJobNo: 'AM10028',
+      ownerRoleCode: 'ACCOUNT_MANAGER',
+      creatorId: 201,
+      creatorName: '王敏',
+      creatorRole: '客户经理',
+      creatorJobNo: 'AM10028',
+      creatorDept: '政企客户部',
+      createTime: '2026-06-06 11:30:00',
+      lastFollowTime: '2026-06-10 16:30:00',
+      description: '二期厂区新增 5G 专网覆盖。',
+      follows: [
+        { id: 'FOLLOW-003', time: '2026-06-09 16:30:00', content: '已提交初版覆盖方案，等待客户确认现场勘察时间。', owner: '王敏' },
+      ],
+      source: 'APP',
+    },
+    {
+      id: 3,
+      code: 'SJ20260603003',
+      customer: '江苏云创信息技术有限公司',
+      title: '云桌面接入项目',
+      industry: '软件信息',
+      customerType: 'ENTERPRISE',
+      level: '中',
+      amount: 560000,
+      status: 'NEW',
+      statusName: '新建',
+      needMaintainer: false,
+      nextContactTime: '2026-06-13 14:00:00',
+      ownerId: 201,
+      owner: '王敏',
+      ownerJobNo: 'AM10028',
+      ownerRoleCode: 'ACCOUNT_MANAGER',
+      creatorId: 201,
+      creatorName: '王敏',
+      creatorRole: '客户经理',
+      creatorJobNo: 'AM10028',
+      creatorDept: '政企客户部',
+      createTime: '2026-06-03 10:05:00',
+      lastFollowTime: '2026-06-08 11:20:00',
+      description: '客户初步咨询 80 席云桌面接入。',
+      follows: [],
+      source: 'APP',
+    },
+    {
+      id: 4,
+      code: 'SJ20260528019',
+      customer: '华东智造有限公司',
+      title: '智能工厂组网升级',
+      industry: '智能制造',
+      customerType: 'ENTERPRISE',
+      level: '高',
+      amount: 1900000,
+      status: 'SIGNED',
+      statusName: '已签约',
+      needMaintainer: true,
+      nextContactTime: '2026-06-12 09:30:00',
+      ownerId: 202,
+      owner: '陈晓',
+      ownerJobNo: 'AM10031',
+      ownerRoleCode: 'ACCOUNT_MANAGER',
+      creatorId: 202,
+      creatorName: '陈晓',
+      creatorRole: '客户经理',
+      creatorJobNo: 'AM10031',
+      creatorDept: '江宁分局',
+      createTime: '2026-05-28 14:18:00',
+      lastFollowTime: '2026-06-09 15:10:00',
+      description: '已完成合同确认，因客户需要现场实施，后续进入装维派单流程。',
+      follows: [
+        { id: 'FOLLOW-004', time: '2026-06-09 15:10:00', content: '合同已签回，等待项目实施排期。', owner: '陈晓' },
+      ],
+      source: 'APP',
+    },
+    {
+      id: 5,
+      code: 'SJ20260522011',
+      customer: '南京科创园',
+      title: '园区云办公咨询',
+      industry: '园区',
+      customerType: 'ENTERPRISE',
+      level: '中',
+      amount: 860000,
+      status: 'CLOSED',
+      statusName: '已关闭',
+      needMaintainer: false,
+      ownerId: 202,
+      owner: '陈晓',
+      ownerJobNo: 'AM10031',
+      ownerRoleCode: 'ACCOUNT_MANAGER',
+      creatorId: 202,
+      creatorName: '陈晓',
+      creatorRole: '客户经理',
+      creatorJobNo: 'AM10031',
+      creatorDept: '江宁分局',
+      createTime: '2026-05-22 09:05:00',
+      lastFollowTime: '2026-06-07 10:05:00',
+      description: '客户本期预算延后，商机关闭并保留后续回访线索。',
+      follows: [
+        { id: 'FOLLOW-005', time: '2026-06-07 10:05:00', content: '客户确认本期暂不推进，保留明年预算窗口。', owner: '陈晓' },
+      ],
+      source: 'APP',
+    },
+    {
+      id: 6,
+      code: 'SJ20260612009',
+      customer: '张先生',
+      title: '家庭宽带升级融合套餐',
+      industry: '公众客户',
+      customerType: 'PUBLIC',
+      level: '中',
+      amount: 3600,
+      status: 'FOLLOWING',
+      statusName: '跟进中',
+      needMaintainer: true,
+      nextContactTime: '2026-06-14 15:00:00',
+      ownerId: 101,
+      owner: '李明',
+      ownerJobNo: 'ZW10086',
+      ownerRoleCode: 'MAINTAINER',
+      creatorId: 101,
+      creatorName: '李明',
+      creatorRole: '装维人员',
+      creatorJobNo: 'ZW10086',
+      creatorDept: '南京鼓楼分局',
+      createTime: '2026-06-12 10:30:00',
+      lastFollowTime: '2026-06-12 10:30:00',
+      description: '装维上门时客户咨询带宽升级和全屋 Wi-Fi 覆盖。',
+      follows: [
+        { id: 'FOLLOW-006', time: '2026-06-12 10:30:00', content: '已记录客户升级意向，约定明天下午回访确认套餐。', owner: '李明' },
+      ],
+      source: 'APP',
+    },
   ],
   dictionaries: [
     { id: 1, group: '申请类型', code: 'MATERIAL', label: '领料申请', color: '#3b82f6', status: 'ENABLED', sort: 10 },
@@ -188,12 +362,32 @@ const seed = {
 
 const clone = (value) => JSON.parse(JSON.stringify(value))
 
+function hydrateOpportunities(data) {
+  const people = Array.isArray(data.people) ? data.people : seed.people
+  const seedById = new Map(seed.opportunities.map((item) => [String(item.id), item]))
+  const seedByCode = new Map(seed.opportunities.map((item) => [item.code, item]))
+  const rows = Array.isArray(data.opportunities) ? data.opportunities : []
+  const normalizedRows = rows.map((row) => {
+    const seedRow = seedById.get(String(row.id)) || seedByCode.get(row.code)
+    return normalizeOpportunity(seedRow ? { ...seedRow, ...row } : row, people)
+  })
+  const ids = new Set(normalizedRows.map((item) => String(item.id)))
+  const codes = new Set(normalizedRows.map((item) => item.code))
+  seed.opportunities.forEach((item) => {
+    if (!ids.has(String(item.id)) && !codes.has(item.code)) {
+      normalizedRows.push(normalizeOpportunity(item, people))
+    }
+  })
+  data.opportunities = normalizedRows
+  return data
+}
+
 function restore() {
   try {
     const cached = JSON.parse(localStorage.getItem(STORAGE_KEY))
-    return cached && cached.applications ? cached : clone(seed)
+    return hydrateOpportunities(cached && cached.applications ? cached : clone(seed))
   } catch {
-    return clone(seed)
+    return hydrateOpportunities(clone(seed))
   }
 }
 

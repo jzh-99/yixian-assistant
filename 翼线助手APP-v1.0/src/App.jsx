@@ -64,6 +64,7 @@ import {
 import {
   APPLICATION_STATUS,
   APPLICATION_TYPE,
+  CUSTOMER_TYPE,
   OPPORTUNITY_STATUS,
   ROLE_CODE,
   TASK_STATUS,
@@ -92,6 +93,7 @@ const bootUser = storedUser ? normalizeCurrentUser(storedUser) : null
 const mainRoutes = {
   home: 'home',
   'smart-form': 'smart-form',
+  opportunities: 'opportunities',
   me: 'me',
 }
 
@@ -100,6 +102,38 @@ const taskActionMeta = {
   [TASK_STATUS.ACCEPTED]: { label: '开始工作', next: TASK_STATUS.IN_PROGRESS, title: '确认现在开始执行该任务？', success: '任务已进入进行中' },
   [TASK_STATUS.IN_PROGRESS]: { label: '反馈完工', next: TASK_STATUS.COMPLETED },
   [TASK_STATUS.COMPLETED]: { label: '查看详情', next: null },
+}
+
+const customerTypeText = {
+  [CUSTOMER_TYPE.PUBLIC]: '公众',
+  [CUSTOMER_TYPE.ENTERPRISE]: '政企',
+}
+
+function opportunityCustomerTypeLabel(type) {
+  return customerTypeText[type] || '公众'
+}
+
+function opportunityMaintainerLabel(needMaintainer) {
+  return needMaintainer ? '需要装维' : '无需装维'
+}
+
+function isSignedMaintainerOpportunity(opportunity) {
+  return opportunity?.status === OPPORTUNITY_STATUS.SIGNED && Boolean(opportunity.needMaintainer)
+}
+
+function belongsToCurrentUser(opportunity, user) {
+  if (!user) return false
+  const ownerIds = [opportunity.ownerId, opportunity.creatorId, opportunity.managerId]
+    .filter((value) => value !== undefined && value !== null && value !== '')
+    .map(String)
+  if (ownerIds.length) return ownerIds.includes(String(user.id))
+
+  const ownerJobs = [opportunity.ownerJobNo, opportunity.creatorJobNo]
+    .filter(Boolean)
+    .map(String)
+  if (ownerJobs.length) return ownerJobs.includes(String(user.jobNo || user.username))
+
+  return opportunity.owner === user.name
 }
 
 function App() {
@@ -177,15 +211,15 @@ function App() {
       api.tasks.list({ pageNo: 1, pageSize: 100 }),
       api.applications.list({ pageNo: 1, pageSize: 100 }),
       isMaintainer(user) ? Promise.resolve([]) : api.visits.list(),
-      isMaintainer(user) ? Promise.resolve([]) : api.opportunities.list(),
+      api.opportunities.list({ pageNo: 1, pageSize: 100 }),
     ]).then(([taskPage, applicationPage, visitList, opportunityList]) => {
       if (!active) return
       setTasks((taskPage.list || []).map(taskFromApi))
       setApplications((applicationPage.list || []).map((item) => applicationFromApi(item, user.roleCode)))
       if (!isMaintainer(user)) {
         setVisits((visitList || []).map(visitFromApi))
-        setOpportunities((opportunityList || []).map(opportunityFromApi))
       }
+      setOpportunities((opportunityList || []).map(opportunityFromApi))
     }).catch((error) => {
       if (active) notify(error.message || '业务数据加载失败', 'error')
     })
@@ -246,6 +280,11 @@ function App() {
     })
   }, [])
 
+  const currentOpportunities = useMemo(
+    () => opportunities.filter((opportunity) => belongsToCurrentUser(opportunity, user)),
+    [opportunities, user],
+  )
+
   const contentProps = {
     user,
     login,
@@ -261,7 +300,7 @@ function App() {
     addApplication,
     visits,
     setVisits,
-    opportunities,
+    opportunities: currentOpportunities,
     setOpportunities,
     addOpportunity,
     notify,
@@ -270,7 +309,7 @@ function App() {
   }
 
   const Screen = resolveScreen(route.name)
-  const isMainPage = ['home', 'smart-form', 'me'].includes(route.name)
+  const isMainPage = ['home', 'smart-form', 'opportunities', 'me'].includes(route.name)
   const showAssistant = Boolean(user) && !['login', 'assistant', 'task-feedback'].includes(route.name) && !modal
 
   return (
@@ -286,7 +325,7 @@ function App() {
             bottom={getAssistantBottom(route.name, user?.roleCode)}
             onOpen={() =>
               navigate('assistant', {
-                context: getAssistantContext(route, tasks, opportunities),
+                context: getAssistantContext(route, tasks, currentOpportunities),
                 sourceRoute: route,
               })
             }
@@ -315,8 +354,9 @@ function App() {
 function getAssistantBottom(routeName, roleCode) {
   if (routeName === 'home') return roleCode === ROLE_CODE.ACCOUNT_MANAGER ? 198 : 138
   if (routeName === 'smart-form') return 148
-  if (routeName === 'me') return 112
-  if (['task-feedback', 'material-preview', 'visit-preview', 'opportunity-form', 'support-form', 'opportunity-detail'].includes(routeName)) return 86
+  if (routeName === 'opportunities' || routeName === 'me') return 112
+  if (routeName === 'opportunity-form') return 158
+  if (['task-feedback', 'material-preview', 'visit-preview', 'support-form', 'opportunity-detail'].includes(routeName)) return 86
   return 24
 }
 
@@ -356,7 +396,7 @@ function getAssistantContext(route, tasks, opportunities) {
     home: '工作台',
     'smart-form': '智能填单',
     applications: '我的申请',
-    opportunities: '商机列表',
+    opportunities: '商机管理',
     'support-form': '快速支撑',
   }
   return labels[route.name] || ''
@@ -656,14 +696,20 @@ function ManagerHomeScreen({ user, visits, setVisits, opportunities, navigate, n
 }
 
 function OpportunityCard({ opportunity, onOpen }) {
+  const signedNeedsMaintainer = isSignedMaintainerOpportunity(opportunity)
+
   return (
     <article className="business-card opportunity-card" onClick={onOpen}>
       <div className="business-card__top">
         <div>
-          <span className="card-kicker">{opportunity.customer}</span>
+          <span className="card-kicker">{opportunityCustomerTypeLabel(opportunity.customerType)}客户 · {opportunity.customer}</span>
           <h3>{opportunity.name}</h3>
         </div>
         <StatusBadge status={opportunity.status} />
+      </div>
+      <div className="opportunity-tags">
+        <span>{opportunityMaintainerLabel(opportunity.needMaintainer)}</span>
+        {signedNeedsMaintainer ? <span className="opportunity-tags__warning">待派单</span> : null}
       </div>
       <div className="opportunity-metrics">
         <span><small>意向等级</small><strong className={`level level--${opportunity.level.toLowerCase()}`}>{opportunity.level}</strong></span>
@@ -1094,7 +1140,7 @@ function AssistantScreen({ user, route, goBack, switchTab, navigate, notify }) {
   }
 
   const followAction = (action) => {
-    if (['home', 'smart-form', 'me'].includes(action.target)) switchTab(action.target)
+    if (['home', 'smart-form', 'opportunities', 'me'].includes(action.target)) switchTab(action.target)
     else navigate(action.target)
   }
 
@@ -1518,7 +1564,7 @@ function TaskFeedbackScreen({ route, tasks, updateTask, navigate, goBack, notify
   )
 }
 
-function OpportunitiesScreen({ opportunities, navigate, goBack }) {
+function OpportunitiesScreen({ opportunities, navigate }) {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
   const filters = [
@@ -1531,11 +1577,12 @@ function OpportunitiesScreen({ opportunities, navigate, goBack }) {
   ]
   const filtered = opportunities.filter((item) =>
     (status === 'all' || item.status === status) &&
-    [item.name, item.customer, item.code].some((value) => value.includes(query)),
+    [item.name, item.customer, item.code, opportunityCustomerTypeLabel(item.customerType)]
+      .some((value) => String(value || '').includes(query)),
   )
   return (
     <div className="page page--plain">
-      <TopBar title="商机" onBack={goBack} action={<button className="text-button" onClick={() => navigate('opportunity-form')}>新建</button>} />
+      <TopBar title="商机管理" action={<button className="text-button" onClick={() => navigate('opportunity-form')}>新建</button>} />
       <div className="search-wrap"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索客户、商机名称或编号" /></div>
       <div className="filter-tabs filter-tabs--scroll">
         {filters.map(([id, label]) => <button key={id} className={status === id ? 'is-active' : ''} onClick={() => setStatus(id)}>{label}</button>)}
@@ -1544,18 +1591,20 @@ function OpportunitiesScreen({ opportunities, navigate, goBack }) {
         <div className="result-count">共 {filtered.length} 个商机</div>
         <div className="card-list">
           {filtered.map((opportunity) => <OpportunityCard key={opportunity.id} opportunity={opportunity} onOpen={() => navigate('opportunity-detail', { opportunityId: opportunity.id })} />)}
+          {!filtered.length ? <EmptyState icon={BriefcaseBusiness} title="还没有商机" description="当前账号创建的商机会显示在这里" action="新建商机" onAction={() => navigate('opportunity-form')} /> : null}
         </div>
       </section>
     </div>
   )
 }
 
-function OpportunityDetailScreen({ route, opportunities, setOpportunities, navigate, goBack, notify }) {
+function OpportunityDetailScreen({ user, route, opportunities, setOpportunities, navigate, goBack, notify }) {
   const opportunity = opportunities.find((item) => item.id === route.params.opportunityId)
   const [adding, setAdding] = useState(false)
   const [content, setContent] = useState('')
   const [nextContact, setNextContact] = useState('')
   if (!opportunity) return <NotFound onBack={goBack} />
+  const signedNeedsMaintainer = isSignedMaintainerOpportunity(opportunity)
 
   const addFollow = async () => {
     if (!content.trim()) {
@@ -1568,7 +1617,7 @@ function OpportunityDetailScreen({ route, opportunities, setOpportunities, navig
         nextContactTime: toContractDateTime(nextContact),
         followUp: { content },
       })
-      const follow = { id: crypto.randomUUID(), time: '刚刚', content, owner: '王敏' }
+      const follow = { id: crypto.randomUUID(), time: '刚刚', content, owner: user.name }
       setOpportunities((items) => items.map((item) =>
         item.id === opportunity.id
           ? { ...item, follows: [follow, ...item.follows], lastFollowAt: '刚刚', nextContact: nextContact || item.nextContact }
@@ -1593,14 +1642,25 @@ function OpportunityDetailScreen({ route, opportunities, setOpportunities, navig
           <div className="opportunity-hero-card__metrics">
             <span><small>意向等级</small><strong className={`level level--${opportunity.level.toLowerCase()}`}>{opportunity.level}</strong></span>
             <span><small>预计金额</small><strong>¥ {opportunity.amount.toLocaleString()}</strong></span>
+            <span><small>客户类型</small><strong>{opportunityCustomerTypeLabel(opportunity.customerType)}</strong></span>
+            <span><small>装维需求</small><strong>{opportunity.needMaintainer ? '需要' : '无需'}</strong></span>
           </div>
         </div>
+        {signedNeedsMaintainer ? (
+          <div className="opportunity-dispatch-note">
+            <Wrench size={16} />
+            <span>已签约且需要装维，后续需进入派单流程。</span>
+          </div>
+        ) : null}
         <FormSection title="基本信息">
           <dl className="readonly-list">
             <div><dt>负责人</dt><dd>{opportunity.owner}</dd></div>
+            <div><dt>客户类型</dt><dd>{opportunityCustomerTypeLabel(opportunity.customerType)}</dd></div>
+            <div><dt>装维需求</dt><dd>{opportunityMaintainerLabel(opportunity.needMaintainer)}</dd></div>
             <div><dt>下次联系</dt><dd>{opportunity.nextContact}</dd></div>
             <div><dt>最近跟进</dt><dd>{opportunity.lastFollowAt}</dd></div>
             <div><dt>创建时间</dt><dd>{opportunity.createdAt}</dd></div>
+            {signedNeedsMaintainer ? <div><dt>派单状态</dt><dd>待派单</dd></div> : null}
             <div className="readonly-list__wide"><dt>商机描述</dt><dd>{opportunity.description}</dd></div>
           </dl>
         </FormSection>
@@ -1628,13 +1688,15 @@ function OpportunityDetailScreen({ route, opportunities, setOpportunities, navig
   )
 }
 
-function OpportunityFormScreen({ route, opportunities, addOpportunity, navigate, goBack, notify }) {
+function OpportunityFormScreen({ user, route, opportunities, addOpportunity, navigate, goBack, notify }) {
   const existing = opportunities.find((item) => item.id === route.params.opportunityId)
   const [customer, setCustomer] = useState(existing?.customer || '')
+  const [customerType, setCustomerType] = useState(existing?.customerType || CUSTOMER_TYPE.PUBLIC)
   const [name, setName] = useState(existing?.name || '')
   const [level, setLevel] = useState(existing?.level || 'B')
   const [amount, setAmount] = useState(existing?.amount || '')
   const [status, setStatus] = useState(existing?.status || OPPORTUNITY_STATUS.NEW)
+  const [needMaintainer, setNeedMaintainer] = useState(Boolean(existing?.needMaintainer))
   const [nextContact, setNextContact] = useState('')
   const [description, setDescription] = useState(existing?.description || '')
   const [loading, setLoading] = useState(false)
@@ -1648,10 +1710,12 @@ function OpportunityFormScreen({ route, opportunities, addOpportunity, navigate,
     try {
       const payload = {
         customerName: customer,
+        customerType,
         title: name,
         intentLevel: level === 'A' ? 'HIGH' : level === 'B' ? 'MEDIUM' : 'LOW',
         estimatedAmount: Math.round(Number(amount) * 100),
         status,
+        needMaintainer,
         nextContactTime: toContractDateTime(nextContact),
         description,
       }
@@ -1663,13 +1727,18 @@ function OpportunityFormScreen({ route, opportunities, addOpportunity, navigate,
         id: String(result.id || existing?.id || `OPP-${Date.now()}`),
         code: result.opportunityNo || existing?.code || `SJ${Date.now().toString().slice(-11)}`,
         customer,
+        customerType,
         name,
         level,
         amount: Number(amount),
         status,
         statusName,
+        needMaintainer,
         nextContact: nextContact || existing?.nextContact || '待设置',
-        owner: existing?.owner || '王敏',
+        ownerId: existing?.ownerId || user.id,
+        ownerJobNo: existing?.ownerJobNo || user.jobNo,
+        ownerRoleCode: existing?.ownerRoleCode || user.roleCode,
+        owner: existing?.owner || user.name,
         createdAt: existing?.createdAt || '刚刚',
         lastFollowAt: existing?.lastFollowAt || '暂无',
         description,
@@ -1690,6 +1759,15 @@ function OpportunityFormScreen({ route, opportunities, addOpportunity, navigate,
       <TopBar title={existing ? '编辑商机' : '新建商机'} onBack={goBack} />
       <section className="page-body form-page">
         <FormSection title="基本信息">
+          <div className="field">
+            <span className="field__label">客户类型 <i>*</i></span>
+            <div className="segmented-control">
+              {[
+                [CUSTOMER_TYPE.PUBLIC, '公众'],
+                [CUSTOMER_TYPE.ENTERPRISE, '政企'],
+              ].map(([value, label]) => <button key={value} className={customerType === value ? 'is-active' : ''} onClick={() => setCustomerType(value)}>{label}</button>)}
+            </div>
+          </div>
           <TextField label="客户名称" required value={customer} onChange={setCustomer} placeholder="搜索或输入客户名称" />
           <TextField label="商机名称" required value={name} onChange={setName} placeholder="请输入商机名称" />
           <div className="field">
@@ -1700,6 +1778,14 @@ function OpportunityFormScreen({ route, opportunities, addOpportunity, navigate,
           </div>
           <TextField label="预计金额（元）" required value={amount} onChange={setAmount} placeholder="请输入金额" type="number" />
           <label className="field"><span className="field__label">商机状态 <i>*</i></span><select className="form-input" value={status} onChange={(event) => setStatus(event.target.value)}><option value={OPPORTUNITY_STATUS.NEW}>新建</option><option value={OPPORTUNITY_STATUS.FOLLOWING}>跟进中</option><option value={OPPORTUNITY_STATUS.HIGH_INTENT}>高意向</option><option value={OPPORTUNITY_STATUS.SIGNED}>已签约</option><option value={OPPORTUNITY_STATUS.CLOSED}>已关闭</option></select></label>
+        </FormSection>
+        <FormSection title="装维需求">
+          <label className="toggle-row">
+            <span><strong>是否需要装维</strong><small>已签约且需要装维的商机会进入后续派单准备</small></span>
+            <input type="checkbox" checked={needMaintainer} onChange={(event) => setNeedMaintainer(event.target.checked)} />
+            <i />
+          </label>
+          {status === OPPORTUNITY_STATUS.SIGNED && needMaintainer ? <span className="field-help">保存后请在后台派单流程中继续安排装维执行人。</span> : null}
         </FormSection>
         <FormSection title="跟进计划">
           <TextField label="下次联系时间" value={nextContact} onChange={setNextContact} type="datetime-local" />

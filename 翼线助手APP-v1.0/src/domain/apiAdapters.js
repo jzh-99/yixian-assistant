@@ -1,6 +1,7 @@
 import {
   APPLICATION_STATUS,
   APPLICATION_TYPE,
+  CUSTOMER_TYPE,
   OPPORTUNITY_STATUS,
   TASK_STATUS,
 } from './contracts'
@@ -17,6 +18,10 @@ function parseJson(value, fallback) {
 
 function displayTime(value) {
   return value ? value.replace('T', ' ').slice(0, 16) : '待设置'
+}
+
+function toBoolean(value) {
+  return value === true || value === 1 || value === '1' || value === 'true'
 }
 
 function statusName(status) {
@@ -156,11 +161,16 @@ export function opportunityFromApi(item) {
     code: item.opportunityNo || `SJ${item.id}`,
     customer: item.customerName || `客户 #${item.customerId || '-'}`,
     name: item.title,
+    customerType: item.customerType || item.customer_type || CUSTOMER_TYPE.PUBLIC,
     level,
     amount: Math.round(Number(item.estimatedAmount || 0) / 100),
     status: item.status || OPPORTUNITY_STATUS.NEW,
     statusName: item.status,
+    needMaintainer: toBoolean(item.needMaintainer ?? item.need_maintainer),
     nextContact: displayTime(item.nextContactTime),
+    ownerId: item.ownerId ? String(item.ownerId) : item.managerId ? String(item.managerId) : item.creatorId ? String(item.creatorId) : '',
+    ownerJobNo: item.ownerJobNo || item.managerEmployeeNo || item.creatorJobNo || '',
+    ownerRoleCode: item.ownerRoleCode || '',
     owner: item.managerName || '当前客户经理',
     createdAt: displayTime(item.createTime),
     lastFollowAt: displayTime(item.lastFollowTime),

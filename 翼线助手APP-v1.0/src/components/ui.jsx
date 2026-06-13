@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   ArrowLeft,
   Bot,
+  BriefcaseBusiness,
   Check,
   FileText,
   Home,
@@ -31,6 +32,7 @@ export function TopBar({ title, onBack, action, transparent = false }) {
 const tabs = [
   { id: 'home', label: '工作台', Icon: Home },
   { id: 'smart-form', label: '智能填单', Icon: FileText },
+  { id: 'opportunities', label: '商机', Icon: BriefcaseBusiness },
   { id: 'me', label: '我的', Icon: UserRound },
 ]
 
